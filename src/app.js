@@ -1,4 +1,4 @@
-//import i18next from 'i18next';
+import i18next from 'i18next';
 import * as yup from 'yup';
 import watch from './view.js';
 
@@ -6,8 +6,7 @@ import watch from './view.js';
     urls: [],
     form: {
         status: null,
-        valid: false,
-        errors: [],
+        valid: true,
       },
       feedback: {
         valid: false,
@@ -23,34 +22,33 @@ import watch from './view.js';
     };
 
     const defaultLang = 'ru';
-    const schema = yup.string().url().notOneOf(initState.urls).required();
-
-
-    const watchedState = watch(elements, i18n, initState);
+    const watchedState = watch(elements, i18next, initState);
     watchedState.form.status = 'filling';
 
-    const storeUrl = (url) => {
-        watchedState.urls.push(url);
-        state.feedback.valid = true;
-    }
+const storeUrl = (url, state) => {
+        state.urls.push(url);
+        console.log("store URL " + url);
+        console.log(state.urls);
+    };
 
-export default async () => {
+export default () => {
     elements.form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    console.log('1');
     const formData = new FormData(e.target);
-    const url = Object.fromEntries(formData);
+    const url = formData.get('url');
     try {
-      await schema.validate(url, { abortEarly: false });
-      watchedState.form.errors = [];
+      const schema = yup.string().url().required().notOneOf(watchedState.urls, 'alreadyExists');
+      const result = await schema.validate(url, { abortEarly: false });
+      console.log(result);
       watchedState.form.valid = true;
+      watchedState.feedback.valid = true;
+      storeUrl(url, watchedState);
     } catch (err) {
-      const validationErrors = err.inner.reduce((acc, cur) => {
-        const { path, message } = cur;
-        return {...acc, [path]: [...acc[path] || [], message]};
-      }, {});
-      watchedState.form.errors = validationErrors;
-    };
-  })
-  .then((url) => storeUrl(url));
+        const { message } = err;
+        console.log(message);
+        watchedState.feedback.valid = false;
+        watchedState.feedback.message = message;
+        watchedState.form.valid = false;
+      };
+    });
 };
