@@ -24,18 +24,10 @@ const config = {
   ],
   module: {
     rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.css$/i,
-        use: [MiniCssExtractPlugin.loader, 'css-loader'],
-      },
-      {
-        test: /\.html$/i,
-        use: 'html-loader',
-      },
+      { test: /\.js$/, exclude: /node_modules/, },
+      /*{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, "css-loader"], },*/
+      { test: /\.css$/i, use: ['style-loader', 'css-loader', 'postcss-loader'], },
+      { test: /\.html$/i, use: 'html-loader', },
     ],
   },
 };

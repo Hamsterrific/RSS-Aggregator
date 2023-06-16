@@ -7304,9 +7304,10 @@ fieldset:disabled .btn {
   color: rgba(33, 37, 41, var(--bs-text-opacity)) !important;
   color: rgba(var(--bs-body-color-rgb), var(--bs-text-opacity)) !important;
 }
-.text-muted {
+.text-mute {
   --bs-text-opacity: 1;
-  color: #6c757d !important;
+  /*olor: #6c757d !important;*/
+  color: rgba(var(--bs-secondary), 1) !important;
 }
 .text-black-50 {
   --bs-text-opacity: 1;
