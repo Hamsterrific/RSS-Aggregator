@@ -47,12 +47,30 @@ watchedState.status = 'filling';
 const processRss = (data) => {
   const { url, rss } = data;
   const feed = processFeed(rss);
-  const posts = processPosts(rss)
+  const posts = processPosts(rss);
   watchedState.rssLoaded = true;
   watchedState.urls.push(url);
   watchedState.feeds.push(feed);
   watchedState.posts.push(...posts);
   watchedState.feedback.message = i18next.t('loadSuccess');
+};
+
+const updateRss = (time) => {
+  setTimeout(() => {
+    const urls = watchedState.urls;
+    const newRss = urls.map(getRss);
+    const oldPosts = watchedState.posts;
+    Promise.all(newRss)
+    .then((newRss) => {
+    const newPosts = newRss.map(({rss}) => processPosts(rss));
+    const uniquePosts = newPosts.flat().filter((newPost) => {
+      return !oldPosts.some((oldPost) => oldPost.id === newPost.id);
+    });
+    if (uniquePosts) watchedState.posts = [...uniquePosts, ...watchedState.posts];
+    });
+
+    updateRss(time);
+  }, time);
 };
 
 export default () => {
@@ -92,4 +110,5 @@ export default () => {
           });
       });
     });
+    updateRss(5000);
 };
