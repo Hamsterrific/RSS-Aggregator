@@ -53,12 +53,33 @@ export default (elements, i18n, initialState) => {
         const itemLink = document.createElement('a');
         const button = document.createElement('button');
         item.append(itemLink, button);
-        itemLink.outerHTML = `<a href="${link}" data-id="${id}" target="_blank" rel="noopenernoreferrer">${title}</a>`;
         itemLink.classList.add('fw-bold');
-        button.outerHTML = `<button type="button" data-id="${id}" data-bs-toggle="modal" data-bs-target="#modal">${i18n.t('view')}</button>`;
-        button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
+        itemLink.setAttribute('target', '_blank');
+        itemLink.setAttribute('rel', 'noopener noreferrer');
+        itemLink.dataset.id = id;
+        itemLink.href = link;
+        itemLink.textContent = title;
+       // itemLink.outerHTML = `<a href="${link}" data-id="${id}" class="fw-bold" target="_blank" rel="noopenernoreferrer">${title}</a>`;
+        if (state.uiState.viewedPosts.includes(id)) {
+          itemLink.classList.remove('fw-bold');
+          itemLink.classList.add('fw-normal', 'link-secondary');
+        }
+        button.outerHTML = `<button type="button" data-id="${id}" class="btn btn-outline-primary btn-sm" 
+        data-bs-toggle="modal" data-bs-target="#modal">${i18n.t('view')}</button>`;
       })
     };
+
+    const renderModal = (state) => {
+      console.log('renderModal started');
+      const modalTitle = elements.modal.querySelector('.modal-title');
+      const modalBody = elements.modal.querySelector('.modal-body');
+      const modalLink = elements.modal.querySelector('.full-article');
+      const id = state.uiState.activeModal;
+      const { title, link, description } = state.posts.find((post) => post.id === id);
+      modalTitle.textContent = title;
+      modalBody.textContent = description;
+      modalLink.href = link;
+    }
     
     const renderContainer = (state, type) => {
       const parent = document.querySelector(`.${type}`);
@@ -68,14 +89,12 @@ export default (elements, i18n, initialState) => {
       parent.appendChild(card);
       const cardBody = document.createElement('div');
       cardBody.classList.add('card-body');
-      card.appendChild(cardBody);
       const cardTitle = document.createElement('h2');
       cardTitle.classList.add('card-title', 'h4');
       cardTitle.textContent = i18n.t(type);
-      card.appendChild(cardTitle);
       const listGroup = document.createElement('ul');
       listGroup.classList.add('list-group', 'border-0', 'rounded-0');
-      card.appendChild(listGroup);
+      card.append(cardBody, cardTitle, listGroup);
       switch(type) {
         case 'feeds':
           renderFeeds(state);
@@ -102,6 +121,9 @@ export default (elements, i18n, initialState) => {
             break;
           case 'posts':
             renderContainer(state, 'posts');
+            break;
+          case 'uiState.activeModal':
+            renderModal(state);
             break;
           default:
             break;

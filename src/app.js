@@ -5,7 +5,7 @@ import resources from './locales/index.js';
 import getRss, { processFeed, processPosts } from './rss.js';
 
 const initState = {
-  status: null,
+  rssLoaded: false,
   form: {
     valid: true,
     submitted: false,
@@ -14,10 +14,13 @@ const initState = {
     valid: false,
     message: '',
   },
+  uiState: {
+    activeModal: '',
+    viewedPosts: [],
+  },
   posts: [],
   feeds: [],
   urls: [],
-  rssLoaded: false,
 };
 
 const elements = {
@@ -27,6 +30,7 @@ const elements = {
   feedback: document.querySelector('.feedback'),
   feeds: document.querySelector('.feeds'),
   posts: document.querySelector('.posts'),
+  modal: document.querySelector('#modal'),
 };
 
 const defaultLang = 'ru';
@@ -42,7 +46,6 @@ yup.setLocale({
 });
 
 const watchedState = watch(elements, i18next, initState);
-watchedState.status = 'filling';
 
 const processRss = (data) => {
   const { url, rss } = data;
@@ -66,7 +69,9 @@ const updateRss = (time) => {
     const uniquePosts = newPosts.flat().filter((newPost) => {
       return !oldPosts.some((oldPost) => oldPost.id === newPost.id);
     });
-    if (uniquePosts) watchedState.posts = [...uniquePosts, ...watchedState.posts];
+    if (uniquePosts.length > 0) {
+      watchedState.posts = [...uniquePosts, ...watchedState.posts];
+    }
     });
 
     updateRss(time);
@@ -111,4 +116,13 @@ export default () => {
       });
     });
     updateRss(5000);
+    elements.posts.addEventListener('click', (e) => {
+      console.log(watchedState.uiState.activeModal);
+      if (e.target.tagName === 'BUTTON') {
+        watchedState.uiState.activeModal = e.target.dataset.id;
+      }
+      if (e.target.tagName === 'A') {
+        watchedState.uiState.viewedPosts.push(e.target.dataset.id);
+      }
+    })
 };
