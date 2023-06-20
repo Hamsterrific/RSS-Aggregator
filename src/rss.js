@@ -37,7 +37,10 @@ const getRss = (url) => {
   return axios
     .get(proxyUrl)
     .then((response) => response.data)
-    .then((data) => ({ url, rss: parseRss(data.contents) }));
+    .then((data) => ({ url, rss: parseRss(data.contents) }))
+    .catch((err) => {
+      throw new Error('networkError');
+    });
 };
 
 export default getRss;
