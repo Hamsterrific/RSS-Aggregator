@@ -111,10 +111,10 @@ export default () => {
             const { message } = err;
             watchedState.feedback.valid = false;
             watchedState.form.valid = false;
-            if (message === 'alreadyExists' || 'required' || 'invalidUrl') {
-              watchedState.feedback.message = message;
+            if (message === 'parseError' || message === 'networkError') {
+              watchedState.feedback.message = i18next.t(`errors.${message}`);
             } else {
-            watchedState.feedback.message = i18next.t(`errors.${message}`);
+              watchedState.feedback.message = message;
             }
           });
       });
