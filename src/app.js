@@ -119,14 +119,15 @@ export default () => {
           });
       });
     });
-    updateRss(5000);
     elements.posts.addEventListener('click', (e) => {
       console.log(watchedState.uiState.activeModal);
       if (e.target.tagName === 'BUTTON') {
         watchedState.uiState.activeModal = e.target.dataset.id;
+        watchedState.uiState.viewedPosts.push(e.target.dataset.id);
       }
       if (e.target.tagName === 'A') {
         watchedState.uiState.viewedPosts.push(e.target.dataset.id);
       }
-    })
+    });
+    updateRss(5000);
 };
