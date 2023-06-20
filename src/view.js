@@ -78,7 +78,6 @@ export default (elements, i18n, initialState) => {
   };
 
   const renderModal = (state) => {
-    console.log('renderModal started');
     const modalTitle = elements.modal.querySelector('.modal-title');
     const modalBody = elements.modal.querySelector('.modal-body');
     const modalLink = elements.modal.querySelector('.full-article');
@@ -129,6 +128,7 @@ export default (elements, i18n, initialState) => {
       case 'feeds':
         renderContainer(state, 'feeds');
         break;
+      case 'uiState.viewedPosts':
       case 'posts':
         renderContainer(state, 'posts');
         break;
