@@ -54,7 +54,7 @@ export default (elements, i18n, initialState) => {
         'justify-content-between',
         'align-items-start',
         'border-0',
-        'border-end-0'
+        'border-end-0',
       );
       listGroup.appendChild(item);
       const itemLink = document.createElement('a');
@@ -71,9 +71,7 @@ export default (elements, i18n, initialState) => {
         itemLink.classList.add('fw-normal', 'link-secondary');
       }
       button.outerHTML = `<button type="button" data-id="${id}" class="btn btn-outline-primary btn-sm" 
-        data-bs-toggle="modal" data-bs-target="#modal">${i18n.t(
-          'view'
-        )}</button>`;
+        data-bs-toggle="modal" data-bs-target="#modal">${i18n.t('view')}</button>`;
     });
   };
 
@@ -83,7 +81,7 @@ export default (elements, i18n, initialState) => {
     const modalLink = elements.modal.querySelector('.full-article');
     const id = state.uiState.activeModal;
     const { title, link, description } = state.posts.find(
-      (post) => post.id === id
+      (post) => post.id === id,
     );
     modalTitle.textContent = title;
     modalBody.textContent = description;

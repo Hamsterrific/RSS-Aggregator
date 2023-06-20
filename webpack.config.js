@@ -1,22 +1,23 @@
 // Generated using webpack-cli https://github.com/webpack/webpack-cli
 
-const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const isProduction = process.env.NODE_ENV == "production";
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 const config = {
-  entry: "./src/index.js",
+  entry: './src/index.js',
   output: {
-    path: path.resolve(__dirname, "dist"),
+    path: path.resolve(__dirname, 'dist'),
   },
   devServer: {
     open: true,
-    host: "localhost",
+    host: 'localhost',
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: "index.html",
+      template: 'index.html',
     }),
     new MiniCssExtractPlugin(),
     // Add your plugins here
@@ -24,19 +25,21 @@ const config = {
   ],
   module: {
     rules: [
-      { test: /\.js$/, exclude: /node_modules/, },
-      /*{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, "css-loader"], },*/
-      { test: /\.css$/i, use: ['style-loader', 'css-loader', 'postcss-loader'], },
-      { test: /\.html$/i, use: 'html-loader', },
+      { test: /\.js$/, exclude: /node_modules/ },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
+      },
+      { test: /\.html$/i, use: 'html-loader' },
     ],
   },
 };
 
 module.exports = () => {
   if (isProduction) {
-    config.mode = "production";
+    config.mode = 'production';
   } else {
-    config.mode = "development";
+    config.mode = 'development';
   }
   return config;
 };

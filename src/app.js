@@ -60,20 +60,18 @@ const processRss = (data) => {
 
 const updateRss = (time) => {
   setTimeout(() => {
-    const urls = watchedState.urls;
+    const { urls } = watchedState;
     const newRss = urls.map(getRss);
     const oldPosts = watchedState.posts;
-    Promise.all(newRss)
-    .then((newRss) => {
-    const newPosts = newRss.map(({rss}) => processPosts(rss));
-    const uniquePosts = newPosts.flat().filter((newPost) => {
-      return !oldPosts.some((oldPost) => oldPost.id === newPost.id);
+    Promise.all(newRss).then((item) => {
+      const newPosts = item.map(({ rss }) => processPosts(rss));
+      const uniquePosts = newPosts
+        .flat()
+        .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
+      if (uniquePosts.length > 0) {
+        watchedState.posts = [...uniquePosts, ...watchedState.posts];
+      }
     });
-    if (uniquePosts.length > 0) {
-      watchedState.posts = [...uniquePosts, ...watchedState.posts];
-    }
-    });
-
     updateRss(time);
   }, time);
 };
@@ -99,13 +97,13 @@ export default () => {
 
         schema
           .validate(url, { abortEarly: false })
-          .then((url) => {
+          .then((validatedUrl) => {
             watchedState.form.valid = true;
             watchedState.feedback.valid = true;
             watchedState.form.submitted = true;
-            return url;
+            return validatedUrl;
           })
-          .then((url) => getRss(url))
+          .then((validatedUrl) => getRss(validatedUrl))
           .then((data) => processRss(data))
           .catch((err) => {
             const { message } = err;
@@ -119,15 +117,15 @@ export default () => {
           });
       });
     });
-    elements.posts.addEventListener('click', (e) => {
-      console.log(watchedState.uiState.activeModal);
-      if (e.target.tagName === 'BUTTON') {
-        watchedState.uiState.activeModal = e.target.dataset.id;
-        watchedState.uiState.viewedPosts.push(e.target.dataset.id);
-      }
-      if (e.target.tagName === 'A') {
-        watchedState.uiState.viewedPosts.push(e.target.dataset.id);
-      }
-    });
-    updateRss(5000);
+  elements.posts.addEventListener('click', (e) => {
+    console.log(watchedState.uiState.activeModal);
+    if (e.target.tagName === 'BUTTON') {
+      watchedState.uiState.activeModal = e.target.dataset.id;
+      watchedState.uiState.viewedPosts.push(e.target.dataset.id);
+    }
+    if (e.target.tagName === 'A') {
+      watchedState.uiState.viewedPosts.push(e.target.dataset.id);
+    }
+  });
+  updateRss(5000);
 };

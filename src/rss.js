@@ -18,7 +18,9 @@ export const processPosts = (rss) => {
     const description = item.querySelector('description').textContent;
     const link = item.querySelector('link').textContent;
     const id = item.querySelector('guid').textContent;
-    posts.push({ title, description, link, id });
+    posts.push({
+      title, description, link, id,
+    });
   });
   return posts;
 };
