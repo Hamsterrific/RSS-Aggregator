@@ -110,8 +110,12 @@ export default () => {
           .catch((err) => {
             const { message } = err;
             watchedState.feedback.valid = false;
-            watchedState.feedback.message = message;
             watchedState.form.valid = false;
+            if (message === 'alreadyExists' || 'required' || 'invalidUrl') {
+              watchedState.feedback.message = message;
+            } else {
+            watchedState.feedback.message = i18next.t(`errors.${message}`);
+            }
           });
       });
     });
