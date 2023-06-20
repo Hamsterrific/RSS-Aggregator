@@ -39,7 +39,7 @@ const getRss = (url) => {
     .then((response) => response.data)
     .then((data) => ({ url, rss: parseRss(data.contents) }))
     .catch((err) => {
-      throw new Error('networkError');
+      throw err.message === 'Network Error' ? new Error('networkError') : err;
     });
 };
 
