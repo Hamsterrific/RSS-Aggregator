@@ -26,7 +26,7 @@ Node.js v18.12 or higher, npm
 # Installation:
 
 1. Clone the repository
-> https://github.com/Hamsterrific/frontend-project-11
+> git clone https://github.com/Hamsterrific/frontend-project-11
 2. Install dependencies
 > make install
 3. Build the project
