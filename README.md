@@ -13,6 +13,21 @@ https://frontend-project-11-eight-pi.vercel.app/
 
 Web application aggregating RSS links. Written in vanilla Javascript using i18next, yup, and axios libraries.
 
-## Usage
+## Usage:
 
 Enter a valid RSS link into the form and submit it.
+
+## Local Deployment:
+
+# Requirements:
+
+Node.js v18.12 or higher, npm
+
+# Installation:
+
+1. Clone the repository
+> cd https://github.com/Hamsterrific/frontend-project-11
+2. Install dependencies
+> make install
+3. Build the project
+> make build

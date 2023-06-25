@@ -1,27 +1,9 @@
+/* eslint-disable no-param-reassign */
 import i18next from 'i18next';
 import * as yup from 'yup';
 import watch from './view.js';
 import resources from './locales/index.js';
 import getRss, { processFeed, processPosts } from './rss.js';
-
-const initState = {
-  rssLoaded: false,
-  form: {
-    valid: true,
-    submitted: false,
-  },
-  feedback: {
-    valid: false,
-    message: '',
-  },
-  uiState: {
-    activeModal: '',
-    viewedPosts: [],
-  },
-  posts: [],
-  feeds: [],
-  urls: [],
-};
 
 const elements = {
   form: document.querySelector('.rss-form'),
@@ -35,48 +17,73 @@ const elements = {
 
 const defaultLang = 'ru';
 
-yup.setLocale({
-  string: {
-    url: () => i18next.t('errors.invalidUrl'),
-  },
-  mixed: {
-    notOneOf: () => i18next.t('errors.alreadyExists'),
-    required: () => i18next.t('errors.required'),
-  },
-});
+const validate = (url, urls, state) => {
+  yup.setLocale({
+    string: {
+      url: () => i18next.t('errors.invalidUrl'),
+    },
+    mixed: {
+      notOneOf: () => i18next.t('errors.alreadyExists'),
+      required: () => i18next.t('errors.required'),
+    },
+  });
+  const schema = yup.string().url().notOneOf(urls).required();
+  try {
+    return schema.validate(url, { abortEarly: false });
+  } catch (err) {
+    state.feedback.message = err.message;
+  }
+  return null;
+};
 
-const watchedState = watch(elements, i18next, initState);
-
-const processRss = (data) => {
+const processRss = (data, state) => {
   const { url, rss } = data;
   const feed = processFeed(rss);
   const posts = processPosts(rss);
-  watchedState.rssLoaded = true;
-  watchedState.urls.push(url);
-  watchedState.feeds.push(feed);
-  watchedState.posts.push(...posts);
-  watchedState.feedback.message = i18next.t('loadSuccess');
+  state.rssLoaded = true;
+  state.urls.push(url);
+  state.feeds.push(feed);
+  state.posts.push(...posts);
+  state.feedback.message = i18next.t('loadSuccess');
 };
 
-const updateRss = (time) => {
+const updateRss = (time, state) => {
   setTimeout(() => {
-    const { urls } = watchedState;
+    const { urls } = state;
     const newRss = urls.map(getRss);
-    const oldPosts = watchedState.posts;
+    const oldPosts = state.posts;
     Promise.all(newRss).then((item) => {
       const newPosts = item.map(({ rss }) => processPosts(rss));
       const uniquePosts = newPosts
         .flat()
         .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
       if (uniquePosts.length > 0) {
-        watchedState.posts = [...uniquePosts, ...watchedState.posts];
+        state.posts = [...uniquePosts, ...state.posts];
       }
     });
-    updateRss(time);
+    updateRss(time, state);
   }, time);
 };
 
 export default () => {
+  const initState = {
+    rssLoaded: false,
+    form: {
+      valid: true,
+      submitted: false,
+    },
+    feedback: {
+      valid: false,
+      message: '',
+    },
+    uiState: {
+      activeModal: '',
+      viewedPosts: [],
+    },
+    posts: [],
+    feeds: [],
+    urls: [],
+  };
   i18next
     .init({
       debug: false,
@@ -84,19 +91,13 @@ export default () => {
       resources,
     })
     .then(() => {
+      const watchedState = watch(elements, i18next, initState);
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         watchedState.feedback.message = '';
         const formData = new FormData(e.target);
         const url = formData.get('url');
-        const schema = yup
-          .string()
-          .url()
-          .required()
-          .notOneOf(watchedState.urls);
-
-        schema
-          .validate(url, { abortEarly: false })
+        validate(url, watchedState.urls, watchedState)
           .then((validatedUrl) => {
             watchedState.form.valid = true;
             watchedState.feedback.valid = true;
@@ -104,7 +105,7 @@ export default () => {
             return validatedUrl;
           })
           .then((validatedUrl) => getRss(validatedUrl))
-          .then((data) => processRss(data))
+          .then((data) => processRss(data, watchedState))
           .catch((err) => {
             const { message } = err;
             watchedState.feedback.valid = false;
@@ -116,16 +117,16 @@ export default () => {
             }
           });
       });
+
+      elements.posts.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+          watchedState.uiState.activeModal = e.target.dataset.id;
+          watchedState.uiState.viewedPosts.push(e.target.dataset.id);
+        }
+        if (e.target.tagName === 'A') {
+          watchedState.uiState.viewedPosts.push(e.target.dataset.id);
+        }
+      });
+      updateRss(5000, watchedState);
     });
-  elements.posts.addEventListener('click', (e) => {
-    console.log(watchedState.uiState.activeModal);
-    if (e.target.tagName === 'BUTTON') {
-      watchedState.uiState.activeModal = e.target.dataset.id;
-      watchedState.uiState.viewedPosts.push(e.target.dataset.id);
-    }
-    if (e.target.tagName === 'A') {
-      watchedState.uiState.viewedPosts.push(e.target.dataset.id);
-    }
-  });
-  updateRss(5000);
 };
