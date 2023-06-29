@@ -5,7 +5,7 @@ build:
 	NODE_ENV=production npx webpack
 
 lint: 
-	npx eslint
+	npx eslint .
 
 develop:
 	npx webpack serve
