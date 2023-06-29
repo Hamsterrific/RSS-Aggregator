@@ -2,7 +2,7 @@
 
 [![Actions Status](https://github.com/Hamsterrific/frontend-project-11/workflows/hexlet-check/badge.svg)](https://github.com/Hamsterrific/frontend-project-11/actions)
 [![Maintainability](https://api.codeclimate.com/v1/badges/2553982aacbc03d27c42/maintainability)](https://codeclimate.com/github/Hamsterrific/frontend-project-11/maintainability)
-[![Eslint Status](https://github.com/Hamsterrific/frontend-project-11/workflows/Eslint/badge.svg)](https://github.com/Hamsterrific/frontend-project-11/actions)
+[![Actions Status](https://github.com/Hamsterrific/frontend-project-11/workflows/Eslint/badge.svg)](https://github.com/Hamsterrific/frontend-project-11/actions)
 
 ## Project Deployment:
 
