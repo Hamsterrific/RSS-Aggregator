@@ -1,9 +1,10 @@
 import i18next from 'i18next';
+import axios from 'axios';
 import * as yup from 'yup';
 import setLocale from './locales/setlocale.js';
 import watch from './view.js';
 import resources from './locales/index.js';
-import getRss, { processFeed, processPosts } from './rss.js';
+import parseRss from './rss.js';
 
 const elements = {
   form: document.querySelector('.rss-form'),
@@ -23,6 +24,41 @@ const validate = (url, urls) => {
     .validate(url)
     .then(() => null)
     .catch((error) => error.message);
+};
+
+const getRss = (url) => {
+  const proxyUrl = new URL('get', 'https://allorigins.hexlet.app');
+  proxyUrl.searchParams.set('disableCache', true);
+  proxyUrl.searchParams.set('url', url);
+  return axios
+    .get(proxyUrl)
+    .then((response) => response.data)
+    .then((data) => ({ url, rss: parseRss(data.contents) }))
+    .catch((err) => {
+      throw err.message === 'Network Error' ? new Error('networkError') : err;
+    });
+};
+
+const processPosts = (rss) => {
+  const items = rss.querySelectorAll('item');
+  const posts = [];
+  items.forEach((item) => {
+    const title = item.querySelector('title').textContent;
+    const description = item.querySelector('description').textContent;
+    const link = item.querySelector('link').textContent;
+    const id = item.querySelector('guid').textContent;
+    posts.push({
+      title, description, link, id,
+    });
+  });
+  return posts;
+};
+
+const processFeed = (rss) => {
+  const feed = rss.querySelector('channel');
+  const title = feed.querySelector('title').textContent;
+  const description = feed.querySelector('description').textContent;
+  return { title, description };
 };
 
 const processRss = (data, state) => {
@@ -90,7 +126,6 @@ export default () => {
         const url = formData.get('url');
         validate(url, watchedState.urls).then((error) => {
           if (error) {
-            console.log(error);
             watchedState.form.valid = false;
             watchedState.form.message = error;
             return;

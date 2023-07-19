@@ -50,7 +50,7 @@ export default (elements, i18n, initialState) => {
         'justify-content-between',
         'align-items-start',
         'border-0',
-        'border-end-0'
+        'border-end-0',
       );
       listGroup.appendChild(item);
       const itemLink = document.createElement('a');
