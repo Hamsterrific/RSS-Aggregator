@@ -81,9 +81,7 @@ const updateRss = (time, state) => {
       const newPosts = item.map(({ rss }) => processPosts(rss));
       const uniquePosts = newPosts
         .flat()
-        .filter(
-          (newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id)
-        );
+        .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
       if (uniquePosts.length > 0) {
         // eslint-disable-next-line no-param-reassign
         state.posts = [...uniquePosts, ...state.posts];
