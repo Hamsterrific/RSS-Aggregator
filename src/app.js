@@ -1,6 +1,6 @@
-/* eslint-disable no-param-reassign */
 import i18next from 'i18next';
 import * as yup from 'yup';
+import setLocale from './locales/setlocale.js';
 import watch from './view.js';
 import resources from './locales/index.js';
 import getRss, { processFeed, processPosts } from './rss.js';
@@ -17,34 +17,23 @@ const elements = {
 
 const defaultLang = 'ru';
 
-const validate = (url, urls, state) => {
-  yup.setLocale({
-    string: {
-      url: () => i18next.t('errors.invalidUrl'),
-    },
-    mixed: {
-      notOneOf: () => i18next.t('errors.alreadyExists'),
-      required: () => i18next.t('errors.required'),
-    },
-  });
+const validate = (url, urls) => {
   const schema = yup.string().url().notOneOf(urls).required();
-  try {
-    return schema.validate(url, { abortEarly: false });
-  } catch (err) {
-    state.feedback.message = err.message;
-  }
-  return null;
+  return schema
+    .validate(url)
+    .then(() => null)
+    .catch((error) => error.message);
 };
 
 const processRss = (data, state) => {
   const { url, rss } = data;
   const feed = processFeed(rss);
   const posts = processPosts(rss);
-  state.rssLoaded = true;
   state.urls.push(url);
   state.feeds.push(feed);
   state.posts.push(...posts);
-  state.feedback.message = i18next.t('loadSuccess');
+  // eslint-disable-next-line no-param-reassign
+  state.loadingProcess.state = 'success';
 };
 
 const updateRss = (time, state) => {
@@ -56,8 +45,11 @@ const updateRss = (time, state) => {
       const newPosts = item.map(({ rss }) => processPosts(rss));
       const uniquePosts = newPosts
         .flat()
-        .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
+        .filter(
+          (newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id)
+        );
       if (uniquePosts.length > 0) {
+        // eslint-disable-next-line no-param-reassign
         state.posts = [...uniquePosts, ...state.posts];
       }
     });
@@ -67,13 +59,12 @@ const updateRss = (time, state) => {
 
 export default () => {
   const initState = {
-    rssLoaded: false,
     form: {
       valid: true,
-      submitted: false,
+      message: '',
     },
-    feedback: {
-      valid: false,
+    loadingProcess: {
+      state: 'idle',
       message: '',
     },
     uiState: {
@@ -90,32 +81,38 @@ export default () => {
       lng: defaultLang,
       resources,
     })
+    .then(setLocale())
     .then(() => {
       const watchedState = watch(elements, i18next, initState);
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
-        watchedState.feedback.message = '';
         const formData = new FormData(e.target);
         const url = formData.get('url');
-        validate(url, watchedState.urls, watchedState)
-          .then((validatedUrl) => {
-            watchedState.form.valid = true;
-            watchedState.feedback.valid = true;
-            watchedState.form.submitted = true;
-            return validatedUrl;
-          })
-          .then((validatedUrl) => getRss(validatedUrl))
-          .then((data) => processRss(data, watchedState))
-          .catch((err) => {
-            const { message } = err;
-            watchedState.feedback.valid = false;
+        validate(url, watchedState.urls).then((error) => {
+          if (error) {
+            console.log(error);
             watchedState.form.valid = false;
-            if (message === 'parseError' || message === 'networkError') {
-              watchedState.feedback.message = i18next.t(`errors.${message}`);
-            } else {
-              watchedState.feedback.message = message;
-            }
-          });
+            watchedState.form.message = error;
+            return;
+          }
+          watchedState.form.valid = true;
+          watchedState.loadingProcess.state = 'loading';
+          getRss(url)
+            .then((data) => processRss(data, watchedState))
+            .catch((err) => {
+              const { message } = err;
+              watchedState.form.valid = false;
+              watchedState.loadingProcess.state = 'failed';
+              if (message === 'parseError' || message === 'networkError') {
+                watchedState.form.message = i18next.t(`errors.${message}`);
+              } else {
+                watchedState.form.message = message;
+              }
+            })
+            .finally(() => {
+              watchedState.loadingProcess.state = 'idle';
+            });
+        });
       });
 
       elements.posts.addEventListener('click', (e) => {

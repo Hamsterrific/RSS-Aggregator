@@ -2,28 +2,24 @@ import onChange from 'on-change';
 
 export default (elements, i18n, initialState) => {
   const renderForm = (state) => {
-    const { form, input } = elements;
+    const { input } = elements;
     if (state.form.valid) {
       input.classList.remove('is-invalid');
     } else {
       input.classList.add('is-invalid');
     }
-    if (state.form.submitted) {
-      form.reset();
-      input.focus();
-    }
   };
 
-  const renderFeedback = (state) => {
+  const renderFormFeedback = (state) => {
     const { feedback } = elements;
-    if (state.feedback.valid) {
+    if (state.form.valid) {
       feedback.classList.remove('text-danger');
       feedback.classList.add('text-success');
     } else {
       feedback.classList.remove('text-success');
       feedback.classList.add('text-danger');
     }
-    feedback.textContent = state.feedback.message;
+    feedback.textContent = state.form.message;
   };
 
   const renderFeeds = (state) => {
@@ -54,7 +50,7 @@ export default (elements, i18n, initialState) => {
         'justify-content-between',
         'align-items-start',
         'border-0',
-        'border-end-0',
+        'border-end-0'
       );
       listGroup.appendChild(item);
       const itemLink = document.createElement('a');
@@ -80,9 +76,7 @@ export default (elements, i18n, initialState) => {
     const modalBody = elements.modal.querySelector('.modal-body');
     const modalLink = elements.modal.querySelector('.full-article');
     const id = state.uiState.activeModal;
-    const { title, link, description } = state.posts.find(
-      (post) => post.id === id,
-    );
+    const { title, link, description } = state.posts.find((post) => post.id === id);
     modalTitle.textContent = title;
     modalBody.textContent = description;
     modalLink.href = link;
@@ -114,14 +108,46 @@ export default (elements, i18n, initialState) => {
     }
   };
 
+  const handleLoadingProcess = (state) => {
+    const {
+      form, feedback, input, submit,
+    } = elements;
+
+    switch (state.loadingProcess.state) {
+      case 'loading':
+        feedback.textContent = '';
+        submit.setAttribute('disabled', '');
+        input.setAttribute('disabled', '');
+        break;
+      case 'success':
+        feedback.textContent = i18n.t('loadSuccess');
+        feedback.classList.replace('text-danger', 'text-success');
+        form.reset();
+        break;
+      case 'failed':
+        feedback.textContent = state.loadingProcess.message;
+        feedback.classList.replace('text-success', 'text-danger');
+        break;
+      case 'idle':
+        submit.removeAttribute('disabled');
+        input.removeAttribute('disabled');
+        elements.input.focus();
+        break;
+      default:
+        break;
+    }
+  };
+
   const state = onChange(initialState, (path) => {
     switch (path) {
+      case 'loadingProcess.state':
+        handleLoadingProcess(state);
+        break;
       case 'form.valid':
-      case 'form.submitted':
         renderForm(state);
         break;
-      case 'feedback.message':
-        renderFeedback(state);
+      case 'form.message':
+        renderFormFeedback(state);
         break;
       case 'feeds':
         renderContainer(state, 'feeds');
