@@ -10,6 +10,7 @@ export default {
       required: 'Field must not be empty',
       parseError: 'URL contains no valid RSS',
       networkError: 'Network error',
+      unknownError: 'Unknown error',
     },
   },
 };

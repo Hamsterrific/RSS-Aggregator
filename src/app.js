@@ -141,11 +141,11 @@ export default () => {
     .then(() => {
       yup.setLocale(customValidationMsg);
       const watchedState = watch(elements, i18next, initState);
-      const urls = extractUrls(watchedState);
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const url = formData.get('url');
+        const urls = extractUrls(watchedState);
         validate(url, urls).then((error) => {
           if (error) {
             watchedState.form.isValid = false;
@@ -166,6 +166,6 @@ export default () => {
           watchedState.viewedPosts.add(e.target.dataset.id);
         }
       });
-      if (urls.length > 0) updateRss(5000, watchedState);
+      if (extractUrls(watchedState).length > 0) updateRss(5000, watchedState);
     });
 };
