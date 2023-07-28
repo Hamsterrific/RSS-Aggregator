@@ -1,25 +1,26 @@
 import onChange from 'on-change';
+import i18next from 'i18next';
 
 export default (elements, i18n, initialState) => {
   const renderForm = (state) => {
     const { input } = elements;
-    if (state.form.valid) {
-      input.classList.remove('is-invalid');
-    } else {
+    if (!state.form.isValid || state.loadingProcess.status === 'failed') {
       input.classList.add('is-invalid');
+    } else {
+      input.classList.remove('is-invalid');
     }
   };
 
   const renderFormFeedback = (state) => {
     const { feedback } = elements;
-    if (state.form.valid) {
+    if (state.form.isValid) {
       feedback.classList.remove('text-danger');
       feedback.classList.add('text-success');
     } else {
       feedback.classList.remove('text-success');
       feedback.classList.add('text-danger');
     }
-    feedback.textContent = state.form.message;
+    feedback.textContent = i18next.t(state.form.error);
   };
 
   const renderFeeds = (state) => {
@@ -62,7 +63,7 @@ export default (elements, i18n, initialState) => {
       itemLink.dataset.id = id;
       itemLink.href = link;
       itemLink.textContent = title;
-      if (state.uiState.viewedPosts.includes(id)) {
+      if (state.viewedPosts.has(id)) {
         itemLink.classList.remove('fw-bold');
         itemLink.classList.add('fw-normal', 'link-secondary');
       }
@@ -75,7 +76,7 @@ export default (elements, i18n, initialState) => {
     const modalTitle = elements.modal.querySelector('.modal-title');
     const modalBody = elements.modal.querySelector('.modal-body');
     const modalLink = elements.modal.querySelector('.full-article');
-    const id = state.uiState.activeModal;
+    const id = state.ui.activePost;
     const { title, link, description } = state.posts.find((post) => post.id === id);
     modalTitle.textContent = title;
     modalBody.textContent = description;
@@ -113,7 +114,7 @@ export default (elements, i18n, initialState) => {
       form, feedback, input, submit,
     } = elements;
 
-    switch (state.loadingProcess.state) {
+    switch (state.loadingProcess.status) {
       case 'loading':
         feedback.textContent = '';
         submit.setAttribute('disabled', '');
@@ -122,11 +123,13 @@ export default (elements, i18n, initialState) => {
       case 'success':
         feedback.textContent = i18n.t('loadSuccess');
         feedback.classList.replace('text-danger', 'text-success');
+        renderForm(state);
         form.reset();
         break;
       case 'failed':
-        feedback.textContent = state.loadingProcess.message;
+        feedback.textContent = i18next.t(`errors.${state.loadingProcess.error}`);
         feedback.classList.replace('text-success', 'text-danger');
+        renderForm(state);
         break;
       case 'idle':
         submit.removeAttribute('disabled');
@@ -140,23 +143,24 @@ export default (elements, i18n, initialState) => {
 
   const state = onChange(initialState, (path) => {
     switch (path) {
-      case 'loadingProcess.state':
+      case 'loadingProcess.status':
         handleLoadingProcess(state);
         break;
-      case 'form.valid':
+      case 'form.isValid':
         renderForm(state);
         break;
-      case 'form.message':
+      case 'form.error':
+      case 'loadingProcess.error':
         renderFormFeedback(state);
         break;
       case 'feeds':
         renderContainer(state, 'feeds');
         break;
-      case 'uiState.viewedPosts':
+      case 'viewedPosts':
       case 'posts':
         renderContainer(state, 'posts');
         break;
-      case 'uiState.activeModal':
+      case 'ui.activePost':
         renderModal(state);
         break;
       default:

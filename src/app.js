@@ -1,22 +1,18 @@
+/* eslint-disable no-param-reassign */
 import i18next from 'i18next';
 import axios from 'axios';
 import * as yup from 'yup';
-import setLocale from './locales/setlocale.js';
+import customValidationMsg from './locales/custom_validation_msg.js';
 import watch from './view.js';
 import resources from './locales/index.js';
 import parseRss from './rss.js';
 
-const elements = {
-  form: document.querySelector('.rss-form'),
-  submit: document.querySelector('button[type="submit"]'),
-  input: document.querySelector('#url-input'),
-  feedback: document.querySelector('.feedback'),
-  feeds: document.querySelector('.feeds'),
-  posts: document.querySelector('.posts'),
-  modal: document.querySelector('#modal'),
-};
-
 const defaultLang = 'ru';
+
+const extractUrls = (state) => {
+  const urls = state.feeds.map((feed) => feed.url);
+  return urls;
+};
 
 const validate = (url, urls) => {
   const schema = yup.string().url().notOneOf(urls).required();
@@ -26,17 +22,11 @@ const validate = (url, urls) => {
     .catch((error) => error.message);
 };
 
-const getRss = (url) => {
+const createProxyUrl = (url) => {
   const proxyUrl = new URL('get', 'https://allorigins.hexlet.app');
   proxyUrl.searchParams.set('disableCache', true);
   proxyUrl.searchParams.set('url', url);
-  return axios
-    .get(proxyUrl)
-    .then((response) => response.data)
-    .then((data) => ({ url, rss: parseRss(data.contents) }))
-    .catch((err) => {
-      throw err.message === 'Network Error' ? new Error('networkError') : err;
-    });
+  return proxyUrl.href;
 };
 
 const processPosts = (rss) => {
@@ -48,34 +38,54 @@ const processPosts = (rss) => {
     const link = item.querySelector('link').textContent;
     const id = item.querySelector('guid').textContent;
     posts.push({
-      title, description, link, id,
+      title,
+      description,
+      link,
+      id,
     });
   });
   return posts;
 };
 
-const processFeed = (rss) => {
+const processFeed = (rss, url) => {
   const feed = rss.querySelector('channel');
   const title = feed.querySelector('title').textContent;
   const description = feed.querySelector('description').textContent;
-  return { title, description };
+  return { title, description, url };
 };
 
-const processRss = (data, state) => {
-  const { url, rss } = data;
-  const feed = processFeed(rss);
-  const posts = processPosts(rss);
-  state.urls.push(url);
-  state.feeds.push(feed);
-  state.posts.push(...posts);
-  // eslint-disable-next-line no-param-reassign
-  state.loadingProcess.state = 'success';
+const getRss = (url, state) => {
+  const proxyUrl = createProxyUrl(url);
+  return axios
+    .get(proxyUrl)
+    .then((response) => {
+      const { data } = response;
+      const rss = parseRss(data.contents);
+      const feed = processFeed(rss, url);
+      const posts = processPosts(rss);
+      state.loadingProcess.status = 'success';
+      state.feeds.push(feed);
+      state.posts.push(...posts);
+    })
+    .catch(({ message }) => {
+      switch (message) {
+        case 'Network Error':
+          state.loadingProcess.error = 'networkError';
+          break;
+        case 'parseError':
+          state.loadingProcess.error = 'parseError';
+          break;
+        default:
+          state.loadingProcess.error = 'unknownError';
+      }
+      state.loadingProcess.status = 'failed';
+    });
 };
 
 const updateRss = (time, state) => {
   setTimeout(() => {
-    const { urls } = state;
-    const newRss = urls.map(getRss);
+    const urls = extractUrls(state);
+    const newRss = urls.map((url) => getRss({ urls: [url] }));
     const oldPosts = state.posts;
     Promise.all(newRss).then((item) => {
       const newPosts = item.map(({ rss }) => processPosts(rss));
@@ -83,7 +93,6 @@ const updateRss = (time, state) => {
         .flat()
         .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
       if (uniquePosts.length > 0) {
-        // eslint-disable-next-line no-param-reassign
         state.posts = [...uniquePosts, ...state.posts];
       }
     });
@@ -91,23 +100,37 @@ const updateRss = (time, state) => {
   }, time);
 };
 
+const loadRss = (url, state) => {
+  state.loadingProcess.status = 'loading';
+  getRss(url, state);
+  state.loadingProcess.status = 'idle';
+};
+
 export default () => {
+  const elements = {
+    form: document.querySelector('.rss-form'),
+    submit: document.querySelector('button[type="submit"]'),
+    input: document.querySelector('#url-input'),
+    feedback: document.querySelector('.feedback'),
+    feeds: document.querySelector('.feeds'),
+    posts: document.querySelector('.posts'),
+    modal: document.querySelector('#modal'),
+  };
   const initState = {
     form: {
-      valid: true,
-      message: '',
+      isValid: true,
+      error: '',
     },
     loadingProcess: {
       state: 'idle',
-      message: '',
+      error: '',
     },
-    uiState: {
-      activeModal: '',
-      viewedPosts: [],
+    ui: {
+      activePost: '',
     },
     posts: [],
     feeds: [],
-    urls: [],
+    viewedPosts: new Set(),
   };
   i18next
     .init({
@@ -115,48 +138,34 @@ export default () => {
       lng: defaultLang,
       resources,
     })
-    .then(setLocale())
     .then(() => {
+      yup.setLocale(customValidationMsg);
       const watchedState = watch(elements, i18next, initState);
+      const urls = extractUrls(watchedState);
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const url = formData.get('url');
-        validate(url, watchedState.urls).then((error) => {
+        validate(url, urls).then((error) => {
           if (error) {
-            watchedState.form.valid = false;
-            watchedState.form.message = error;
+            watchedState.form.isValid = false;
+            watchedState.form.error = error;
             return;
           }
-          watchedState.form.valid = true;
-          watchedState.loadingProcess.state = 'loading';
-          getRss(url)
-            .then((data) => processRss(data, watchedState))
-            .catch((err) => {
-              const { message } = err;
-              watchedState.form.valid = false;
-              watchedState.loadingProcess.state = 'failed';
-              if (message === 'parseError' || message === 'networkError') {
-                watchedState.form.message = i18next.t(`errors.${message}`);
-              } else {
-                watchedState.form.message = message;
-              }
-            })
-            .finally(() => {
-              watchedState.loadingProcess.state = 'idle';
-            });
+          watchedState.form = { isValid: true, error: '' };
+          loadRss(url, watchedState);
         });
       });
 
       elements.posts.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
-          watchedState.uiState.activeModal = e.target.dataset.id;
-          watchedState.uiState.viewedPosts.push(e.target.dataset.id);
+          watchedState.ui.activePost = e.target.dataset.id;
+          watchedState.viewedPosts.add(e.target.dataset.id);
         }
         if (e.target.tagName === 'A') {
-          watchedState.uiState.viewedPosts.push(e.target.dataset.id);
+          watchedState.viewedPosts.add(e.target.dataset.id);
         }
       });
-      updateRss(5000, watchedState);
+      if (urls.length > 0) updateRss(5000, watchedState);
     });
 };
