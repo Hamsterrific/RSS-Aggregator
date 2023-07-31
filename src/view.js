@@ -142,12 +142,11 @@ export default (elements, i18n, initialState) => {
   };
 
   const state = onChange(initialState, (path) => {
-    console.log(path);
     switch (path) {
       case 'loadingProcess.status':
         handleLoadingProcess(state);
         break;
-      case 'form.error':
+      case 'form':
       case 'loadingProcess.error':
         renderFormFeedback(state);
         break;

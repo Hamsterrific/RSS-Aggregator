@@ -2,12 +2,14 @@
 import i18next from 'i18next';
 import axios from 'axios';
 import * as yup from 'yup';
+import { uniqueId } from 'lodash';
 import customValidationMsg from './locales/custom_validation_msg.js';
 import watch from './view.js';
 import resources from './locales/index.js';
 import parseRss from './rss.js';
 
 const defaultLang = 'ru';
+const updateInterval = 5000;
 
 const extractUrls = (state) => {
   const urls = state.feeds.map((feed) => feed.url);
@@ -29,30 +31,7 @@ const createProxyUrl = (url) => {
   return proxyUrl.href;
 };
 
-const processPosts = (rss) => {
-  const items = rss.querySelectorAll('item');
-  const posts = [];
-  items.forEach((item) => {
-    const title = item.querySelector('title').textContent;
-    const description = item.querySelector('description').textContent;
-    const link = item.querySelector('link').textContent;
-    const id = item.querySelector('guid').textContent;
-    posts.push({
-      title,
-      description,
-      link,
-      id,
-    });
-  });
-  return posts;
-};
-
-const processFeed = (rss, url) => {
-  const feed = rss.querySelector('channel');
-  const title = feed.querySelector('title').textContent;
-  const description = feed.querySelector('description').textContent;
-  return { title, description, url };
-};
+const addUniqueId = (data) => data.map((item) => { item.id = uniqueId(); return item; });
 
 const getRss = (url, state) => {
   const proxyUrl = createProxyUrl(url);
@@ -60,11 +39,10 @@ const getRss = (url, state) => {
     .get(proxyUrl)
     .then((response) => {
       const { data } = response;
-      const rss = parseRss(data.contents);
-      const feed = processFeed(rss, url);
-      const posts = processPosts(rss);
+      const { title, description, items } = parseRss(data.contents);
       state.loadingProcess.status = 'success';
-      state.feeds.push(feed);
+      const posts = addUniqueId(items);
+      state.feeds.push({ title, description, url });
       state.posts.push(...posts);
     })
     .catch(({ message }) => {
@@ -83,27 +61,33 @@ const getRss = (url, state) => {
 };
 
 const updateRss = (time, state) => {
-  setTimeout(() => {
-    const urls = extractUrls(state);
-    const newRss = urls.map((url) => getRss({ urls: [url] }));
-    const oldPosts = state.posts;
-    Promise.all(newRss).then((item) => {
-      const newPosts = item.map(({ rss }) => processPosts(rss));
+  const urls = extractUrls(state);
+  const oldPosts = state.posts;
+
+  const axiosRequests = urls.map((url) => {
+    const proxyUrl = createProxyUrl(url);
+    return axios.get(proxyUrl)
+      .then((response) => {
+        const { items } = parseRss(response.data.contents);
+        return addUniqueId(items);
+      });
+  });
+
+  Promise.all(axiosRequests)
+    .then((newPostsArray) => {
+      const newPosts = newPostsArray.flat();
       const uniquePosts = newPosts
-        .flat()
         .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
       if (uniquePosts.length > 0) {
         state.posts = [...uniquePosts, ...state.posts];
       }
+    })
+    .catch((error) => {
+      console.error(error);
+    })
+    .finally(() => {
+      setTimeout(() => updateRss(time, state), time);
     });
-    updateRss(time, state);
-  }, time);
-};
-
-const loadRss = (url, state) => {
-  state.loadingProcess.status = 'loading';
-  getRss(url, state);
-  state.loadingProcess.status = 'idle';
 };
 
 export default () => {
@@ -122,7 +106,7 @@ export default () => {
       error: '',
     },
     loadingProcess: {
-      state: 'idle',
+      status: 'idle',
       error: '',
     },
     ui: {
@@ -148,12 +132,15 @@ export default () => {
         const urls = extractUrls(watchedState);
         validate(url, urls).then((error) => {
           if (error) {
-            watchedState.form.isValid = false;
-            watchedState.form.error = error;
+            watchedState.form = { isValid: false, error };
             return;
           }
           watchedState.form = { isValid: true, error: '' };
-          loadRss(url, watchedState);
+          watchedState.loadingProcess.status = 'loading';
+          getRss(url, watchedState)
+            .then(() => {
+              watchedState.loadingProcess.status = 'idle';
+            });
         });
       });
 
@@ -166,6 +153,6 @@ export default () => {
           watchedState.viewedPosts.add(e.target.dataset.id);
         }
       });
-      if (extractUrls(watchedState).length > 0) updateRss(5000, watchedState);
+      updateRss(updateInterval, watchedState);
     });
 };
