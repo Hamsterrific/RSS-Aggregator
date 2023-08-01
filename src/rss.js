@@ -3,7 +3,9 @@ const parseRss = (data) => {
   const rss = parser.parseFromString(data, 'text/xml');
   const parseError = rss.querySelector('parsererror');
   if (parseError) {
-    throw new Error('parseError');
+    const error = new Error(parseError.textContent);
+    error.isParseError = true;
+    throw error;
   }
   const feedTitle = rss.querySelector('channel > title').textContent;
   const feedDescription = rss.querySelector('channel > description').textContent;

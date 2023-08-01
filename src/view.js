@@ -3,22 +3,15 @@ import i18next from 'i18next';
 
 export default (elements, i18n, initialState) => {
   const renderForm = (state) => {
-    const { input } = elements;
+    const { input, feedback } = elements;
     if (!state.form.isValid || state.loadingProcess.status === 'failed') {
       input.classList.add('is-invalid');
-    } else {
-      input.classList.remove('is-invalid');
-    }
-  };
-
-  const renderFormFeedback = (state) => {
-    const { feedback } = elements;
-    if (state.form.isValid) {
-      feedback.classList.remove('text-danger');
-      feedback.classList.add('text-success');
-    } else {
       feedback.classList.remove('text-success');
       feedback.classList.add('text-danger');
+    } else {
+      input.classList.remove('is-invalid');
+      feedback.classList.remove('text-danger');
+      feedback.classList.add('text-success');
     }
     feedback.textContent = i18next.t(state.form.error);
   };
@@ -121,15 +114,15 @@ export default (elements, i18n, initialState) => {
         input.setAttribute('disabled', '');
         break;
       case 'success':
-        feedback.textContent = i18n.t('loadSuccess');
-        feedback.classList.replace('text-danger', 'text-success');
         renderForm(state);
+        feedback.classList.replace('text-danger', 'text-success');
+        feedback.textContent = i18n.t('loadSuccess');
         form.reset();
         break;
       case 'failed':
-        feedback.textContent = i18next.t(`errors.${state.loadingProcess.error}`);
-        feedback.classList.replace('text-success', 'text-danger');
         renderForm(state);
+        feedback.classList.replace('text-success', 'text-danger');
+        feedback.textContent = i18next.t(`errors.${state.loadingProcess.error}`);
         break;
       case 'idle':
         submit.removeAttribute('disabled');
@@ -143,15 +136,11 @@ export default (elements, i18n, initialState) => {
 
   const state = onChange(initialState, (path) => {
     switch (path) {
+      case 'form':
+        renderForm(state);
+        break;
       case 'loadingProcess.status':
         handleLoadingProcess(state);
-        break;
-      case 'form':
-      case 'loadingProcess.error':
-        renderFormFeedback(state);
-        break;
-      case 'form.isValid':
-        renderForm(state);
         break;
       case 'feeds':
         renderContainer(state, 'feeds');

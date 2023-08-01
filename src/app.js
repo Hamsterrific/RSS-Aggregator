@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign */
 import i18next from 'i18next';
 import axios from 'axios';
 import * as yup from 'yup';
@@ -10,6 +9,7 @@ import parseRss from './rss.js';
 
 const defaultLang = 'ru';
 const updateInterval = 5000;
+const axiosTimeout = 10000;
 
 const extractUrls = (state) => {
   const urls = state.feeds.map((feed) => feed.url);
@@ -31,31 +31,39 @@ const createProxyUrl = (url) => {
   return proxyUrl.href;
 };
 
+// eslint-disable-next-line no-param-reassign
 const addUniqueId = (data) => data.map((item) => { item.id = uniqueId(); return item; });
+
+const getErrorCode = (error) => {
+  if (error.isAxiosError) {
+    return 'networkError';
+  }
+  if (error.isParseError) {
+    return 'parseError';
+  }
+  return 'unknownError';
+};
 
 const getRss = (url, state) => {
   const proxyUrl = createProxyUrl(url);
-  return axios
-    .get(proxyUrl)
+  return axios({
+    method: 'get',
+    url: proxyUrl,
+    timeout: axiosTimeout,
+  })
     .then((response) => {
       const { data } = response;
       const { title, description, items } = parseRss(data.contents);
+      // eslint-disable-next-line no-param-reassign
       state.loadingProcess.status = 'success';
       const posts = addUniqueId(items);
       state.feeds.push({ title, description, url });
       state.posts.push(...posts);
     })
-    .catch(({ message }) => {
-      switch (message) {
-        case 'Network Error':
-          state.loadingProcess.error = 'networkError';
-          break;
-        case 'parseError':
-          state.loadingProcess.error = 'parseError';
-          break;
-        default:
-          state.loadingProcess.error = 'unknownError';
-      }
+    .catch((error) => {
+      // eslint-disable-next-line no-param-reassign
+      state.loadingProcess.error = getErrorCode(error);
+      // eslint-disable-next-line no-param-reassign
       state.loadingProcess.status = 'failed';
     });
 };
@@ -66,7 +74,11 @@ const updateRss = (time, state) => {
 
   const axiosRequests = urls.map((url) => {
     const proxyUrl = createProxyUrl(url);
-    return axios.get(proxyUrl)
+    return axios({
+      method: 'get',
+      url: proxyUrl,
+      timeout: axiosTimeout,
+    })
       .then((response) => {
         const { items } = parseRss(response.data.contents);
         return addUniqueId(items);
@@ -79,6 +91,7 @@ const updateRss = (time, state) => {
       const uniquePosts = newPosts
         .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
       if (uniquePosts.length > 0) {
+        // eslint-disable-next-line no-param-reassign
         state.posts = [...uniquePosts, ...state.posts];
       }
     })
