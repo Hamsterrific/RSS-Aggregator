@@ -31,8 +31,10 @@ const createProxyUrl = (url) => {
   return proxyUrl.href;
 };
 
-// eslint-disable-next-line no-param-reassign
-const addUniqueId = (data) => data.map((item) => { item.id = uniqueId(); return item; });
+const relatePosts = (items) => items.map((item) => ({
+  ...item,
+  id: uniqueId(),
+}));
 
 const getErrorCode = (error) => {
   if (error.isAxiosError) {
@@ -45,6 +47,8 @@ const getErrorCode = (error) => {
 };
 
 const getRss = (url, state) => {
+  // eslint-disable-next-line no-param-reassign
+  state.loadingProcess.status = 'loading';
   const proxyUrl = createProxyUrl(url);
   return axios({
     method: 'get',
@@ -56,8 +60,18 @@ const getRss = (url, state) => {
       const { title, description, items } = parseRss(data.contents);
       // eslint-disable-next-line no-param-reassign
       state.loadingProcess.status = 'success';
-      const posts = addUniqueId(items);
-      state.feeds.push({ title, description, url });
+      const feed = {
+        id: uniqueId(),
+        title,
+        description,
+        url,
+      };
+      const posts = items.map((item) => ({
+        ...item,
+        feedId: feed.id,
+        id: uniqueId(),
+      }));
+      state.feeds.push(feed);
       state.posts.push(...posts);
     })
     .catch((error) => {
@@ -65,6 +79,10 @@ const getRss = (url, state) => {
       state.loadingProcess.error = getErrorCode(error);
       // eslint-disable-next-line no-param-reassign
       state.loadingProcess.status = 'failed';
+    })
+    .finally(() => {
+      // eslint-disable-next-line no-param-reassign
+      state.loadingProcess.status = 'idle';
     });
 };
 
@@ -81,7 +99,7 @@ const updateRss = (time, state) => {
     })
       .then((response) => {
         const { items } = parseRss(response.data.contents);
-        return addUniqueId(items);
+        return relatePosts(items);
       });
   });
 
@@ -149,11 +167,7 @@ export default () => {
             return;
           }
           watchedState.form = { isValid: true, error: '' };
-          watchedState.loadingProcess.status = 'loading';
-          getRss(url, watchedState)
-            .then(() => {
-              watchedState.loadingProcess.status = 'idle';
-            });
+          getRss(url, watchedState);
         });
       });
 
