@@ -141,7 +141,7 @@ export default (elements, i18n, initialState) => {
       case 'form':
         renderForm(state);
         break;
-      case 'loadingProcess.status':
+      case 'loadingProcess':
         handleLoadingProcess(state);
         break;
       case 'feeds':

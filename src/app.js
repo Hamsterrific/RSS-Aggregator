@@ -43,7 +43,7 @@ const getErrorCode = (error) => {
 
 const getRss = (url, state) => {
   // eslint-disable-next-line no-param-reassign
-  state.loadingProcess.status = 'loading';
+  state.loadingProcess = { status: 'loading' };
   const proxyUrl = createProxyUrl(url);
   return axios({
     method: 'get',
@@ -54,7 +54,7 @@ const getRss = (url, state) => {
       const { data } = response;
       const { title, description, items } = parseRss(data.contents);
       // eslint-disable-next-line no-param-reassign
-      state.loadingProcess.status = 'success';
+      state.loadingProcess = { status: 'success' };
       const feed = {
         id: uniqueId(),
         title,
@@ -69,18 +69,17 @@ const getRss = (url, state) => {
       state.feeds.push(feed);
       state.posts.push(...posts);
     })
-    .catch((error) => {
+    .catch((err) => {
       // eslint-disable-next-line no-param-reassign
-      state.loadingProcess = { error: getErrorCode(error), status: 'failed' };
+      state.loadingProcess = { error: getErrorCode(err), status: 'failed' };
     });
 };
 
 const updateRss = (time, state) => {
-  const urls = extractUrls(state);
   const oldPosts = state.posts;
 
-  const axiosRequests = urls.map((url) => {
-    const proxyUrl = createProxyUrl(url);
+  const axiosRequests = state.feeds.map((feed) => {
+    const proxyUrl = createProxyUrl(feed.url);
     return axios({
       method: 'get',
       url: proxyUrl,
@@ -91,6 +90,7 @@ const updateRss = (time, state) => {
         return items.map((item) => ({
           ...item,
           id: uniqueId(),
+          feedId: feed.id,
         }));
       })
       .catch((error) => {
@@ -99,13 +99,13 @@ const updateRss = (time, state) => {
   });
 
   Promise.all(axiosRequests)
-    .then((newPostsArray) => {
-      const newPosts = newPostsArray.flat();
-      const uniquePosts = newPosts
-        .filter((newPost) => !oldPosts.some((oldPost) => oldPost.id === newPost.id));
-      if (uniquePosts.length > 0) {
+    .then((currentPosts) => {
+      const newlyAddedPosts = currentPosts
+        .flat()
+        .filter((currentPost) => !oldPosts.some((oldPost) => oldPost.link === currentPost.link));
+      if (newlyAddedPosts.length > 0) {
         // eslint-disable-next-line no-param-reassign
-        state.posts = [...uniquePosts, ...state.posts];
+        state.posts = [...newlyAddedPosts, ...oldPosts];
       }
     })
     .finally(() => {
@@ -164,13 +164,12 @@ export default () => {
       });
 
       elements.posts.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-          watchedState.ui.activePost = e.target.dataset.id;
-          watchedState.viewedPosts.add(e.target.dataset.id);
+        const { id } = e.target.dataset;
+        if (!id) {
+          return;
         }
-        if (e.target.tagName === 'A') {
-          watchedState.viewedPosts.add(e.target.dataset.id);
-        }
+        watchedState.ui.activePost = id;
+        watchedState.viewedPosts.add(id);
       });
       updateRss(updateInterval, watchedState);
     });
