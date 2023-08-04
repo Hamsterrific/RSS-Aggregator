@@ -117,17 +117,19 @@ export default (elements, i18n, initialState) => {
         renderForm(state);
         feedback.classList.replace('text-danger', 'text-success');
         feedback.textContent = i18n.t('loadSuccess');
+        submit.removeAttribute('disabled');
+        input.removeAttribute('disabled');
+        elements.input.focus();
         form.reset();
         break;
       case 'failed':
         renderForm(state);
         feedback.classList.replace('text-success', 'text-danger');
         feedback.textContent = i18next.t(`errors.${state.loadingProcess.error}`);
-        break;
-      case 'idle':
         submit.removeAttribute('disabled');
         input.removeAttribute('disabled');
         elements.input.focus();
+        form.reset();
         break;
       default:
         break;

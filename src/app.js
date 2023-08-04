@@ -31,11 +31,6 @@ const createProxyUrl = (url) => {
   return proxyUrl.href;
 };
 
-const relatePosts = (items) => items.map((item) => ({
-  ...item,
-  id: uniqueId(),
-}));
-
 const getErrorCode = (error) => {
   if (error.isAxiosError) {
     return 'networkError';
@@ -76,13 +71,7 @@ const getRss = (url, state) => {
     })
     .catch((error) => {
       // eslint-disable-next-line no-param-reassign
-      state.loadingProcess.error = getErrorCode(error);
-      // eslint-disable-next-line no-param-reassign
-      state.loadingProcess.status = 'failed';
-    })
-    .finally(() => {
-      // eslint-disable-next-line no-param-reassign
-      state.loadingProcess.status = 'idle';
+      state.loadingProcess = { error: getErrorCode(error), status: 'failed' };
     });
 };
 
@@ -99,7 +88,13 @@ const updateRss = (time, state) => {
     })
       .then((response) => {
         const { items } = parseRss(response.data.contents);
-        return relatePosts(items);
+        return items.map((item) => ({
+          ...item,
+          id: uniqueId(),
+        }));
+      })
+      .catch((error) => {
+        console.error(error);
       });
   });
 
@@ -112,9 +107,6 @@ const updateRss = (time, state) => {
         // eslint-disable-next-line no-param-reassign
         state.posts = [...uniquePosts, ...state.posts];
       }
-    })
-    .catch((error) => {
-      console.error(error);
     })
     .finally(() => {
       setTimeout(() => updateRss(time, state), time);
