@@ -31,7 +31,7 @@ export default (elements, i18n, initialState) => {
   const renderFeeds = (state) => {
     const parent = elements.feeds;
     parent.innerHTML = '';
-    const feedsCard = renderCard('feeds');
+    const utils = renderCard('feeds');
     const listGroup = document.createElement('ul');
     listGroup.classList.add('list-group', 'border-0', 'rounded-0');
     state.feeds.forEach((item) => {
@@ -50,14 +50,14 @@ export default (elements, i18n, initialState) => {
       feed.appendChild(title);
       feed.appendChild(description);
     });
-    parent.append(feedsCard);
-    feedsCard.append(listGroup);
+    parent.append(utils);
+    utils.append(listGroup);
   };
 
   const renderPosts = (state) => {
     const parent = elements.posts;
     parent.innerHTML = '';
-    const postsCard = renderCard('posts');
+    const utils = renderCard('posts');
     const listGroup = document.createElement('ul');
     listGroup.classList.add('list-group', 'border-0', 'rounded-0');
     state.posts.forEach((post) => {
@@ -94,8 +94,8 @@ export default (elements, i18n, initialState) => {
       listGroup.appendChild(item);
       item.append(itemLink, button);
     });
-    parent.append(postsCard);
-    postsCard.append(listGroup);
+    parent.append(utils);
+    utils.append(listGroup);
   };
 
   const renderModal = (state) => {
