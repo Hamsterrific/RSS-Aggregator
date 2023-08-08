@@ -16,25 +16,50 @@ export default (elements, i18n, initialState) => {
     feedback.textContent = i18next.t(state.form.error);
   };
 
+  const renderCard = (type) => {
+    const card = document.createElement('div');
+    card.classList.add('card', 'border-0');
+    const cardBody = document.createElement('div');
+    cardBody.classList.add('card-body');
+    const cardTitle = document.createElement('h2');
+    cardTitle.classList.add('card-title', 'h4');
+    cardTitle.textContent = i18n.t(type);
+    card.append(cardBody, cardTitle);
+    return card;
+  };
+
   const renderFeeds = (state) => {
-    const listGroup = document.querySelector('.feeds .card .list-group');
-    state.feeds.forEach((feed) => {
-      const item = document.createElement('li');
-      item.classList.add('list-group-item', 'border-0', 'border-end-0');
-      listGroup.appendChild(item);
-      const itemTitle = document.createElement('h3');
-      itemTitle.classList.add('h6', 'm-0');
-      itemTitle.textContent = feed.title;
-      item.appendChild(itemTitle);
-      const itemDesc = document.createElement('p');
-      itemDesc.classList.add('m-0', 'small-text-black-50');
-      itemDesc.textContent = feed.description;
-      item.appendChild(itemDesc);
+    const parent = elements.feeds;
+    parent.innerHTML = '';
+    const card = renderCard('feeds');
+    const listGroup = document.createElement('ul');
+    listGroup.classList.add('list-group', 'border-0', 'rounded-0');
+    state.feeds.forEach((item) => {
+      const feed = document.createElement('li');
+      const title = document.createElement('h3');
+      const description = document.createElement('p');
+
+      feed.classList.add('list-group-item', 'border-0', 'border-end-0');
+      title.classList.add('h6', 'm-0');
+      description.classList.add('m-0', 'small-text-black-50');
+
+      title.textContent = item.title;
+      description.textContent = item.description;
+
+      listGroup.appendChild(feed);
+      feed.appendChild(title);
+      feed.appendChild(description);
     });
+    parent.append(card);
+    card.append(listGroup);
   };
 
   const renderPosts = (state) => {
-    const listGroup = document.querySelector('.posts .card .list-group');
+    const parent = elements.posts;
+    parent.innerHTML = '';
+    const card = renderCard('posts');
+    const listGroup = document.createElement('ul');
+    listGroup.classList.add('list-group', 'border-0', 'rounded-0');
     state.posts.forEach((post) => {
       const { title, link, id } = post;
       const item = document.createElement('li');
@@ -46,11 +71,7 @@ export default (elements, i18n, initialState) => {
         'border-0',
         'border-end-0',
       );
-      listGroup.appendChild(item);
       const itemLink = document.createElement('a');
-      const button = document.createElement('button');
-      item.append(itemLink, button);
-      itemLink.classList.add('fw-bold');
       itemLink.setAttribute('target', '_blank');
       itemLink.setAttribute('rel', 'noopener noreferrer');
       itemLink.dataset.id = id;
@@ -59,10 +80,22 @@ export default (elements, i18n, initialState) => {
       if (state.viewedPosts.has(id)) {
         itemLink.classList.remove('fw-bold');
         itemLink.classList.add('fw-normal', 'link-secondary');
+      } else {
+        itemLink.classList.add('fw-bold');
       }
-      button.outerHTML = `<button type="button" data-id="${id}" class="btn btn-outline-primary btn-sm" 
-        data-bs-toggle="modal" data-bs-target="#modal">${i18n.t('view')}</button>`;
+
+      const button = document.createElement('button');
+      button.setAttribute('type', 'button');
+      button.setAttribute('data-id', id);
+      button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
+      button.setAttribute('data-bs-toggle', 'modal');
+      button.setAttribute('data-bs-target', '#modal');
+      button.textContent = i18n.t('view');
+      listGroup.appendChild(item);
+      item.append(itemLink, button);
     });
+    parent.append(card);
+    card.append(listGroup);
   };
 
   const renderModal = (state) => {
@@ -74,32 +107,6 @@ export default (elements, i18n, initialState) => {
     modalTitle.textContent = title;
     modalBody.textContent = description;
     modalLink.href = link;
-  };
-
-  const renderContainer = (state, type) => {
-    const parent = document.querySelector(`.${type}`);
-    parent.innerHTML = '';
-    const card = document.createElement('div');
-    card.classList.add('card', 'border-0');
-    parent.appendChild(card);
-    const cardBody = document.createElement('div');
-    cardBody.classList.add('card-body');
-    const cardTitle = document.createElement('h2');
-    cardTitle.classList.add('card-title', 'h4');
-    cardTitle.textContent = i18n.t(type);
-    const listGroup = document.createElement('ul');
-    listGroup.classList.add('list-group', 'border-0', 'rounded-0');
-    card.append(cardBody, cardTitle, listGroup);
-    switch (type) {
-      case 'feeds':
-        renderFeeds(state);
-        break;
-      case 'posts':
-        renderPosts(state);
-        break;
-      default:
-        break;
-    }
   };
 
   const handleLoadingProcess = (state) => {
@@ -145,11 +152,11 @@ export default (elements, i18n, initialState) => {
         handleLoadingProcess(state);
         break;
       case 'feeds':
-        renderContainer(state, 'feeds');
+        renderFeeds(state);
         break;
       case 'viewedPosts':
       case 'posts':
-        renderContainer(state, 'posts');
+        renderPosts(state);
         break;
       case 'ui.activePost':
         renderModal(state);

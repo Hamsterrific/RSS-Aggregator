@@ -54,7 +54,7 @@ const getRss = (url, state) => {
       const { data } = response;
       const { title, description, items } = parseRss(data.contents);
       // eslint-disable-next-line no-param-reassign
-      state.loadingProcess = { status: 'success' };
+      state.loadingProcess = { error: '', status: 'success' };
       const feed = {
         id: uniqueId(),
         title,
@@ -76,8 +76,6 @@ const getRss = (url, state) => {
 };
 
 const updateRss = (time, state) => {
-  const oldPosts = state.posts;
-
   const axiosRequests = state.feeds.map((feed) => {
     const proxyUrl = createProxyUrl(feed.url);
     return axios({
@@ -87,27 +85,24 @@ const updateRss = (time, state) => {
     })
       .then((response) => {
         const { items } = parseRss(response.data.contents);
-        return items.map((item) => ({
+        const oldPosts = state.posts
+          .filter(({ feedId }) => feedId === feed.id)
+          .map((post) => post.link);
+        const newPosts = items.filter(({ link }) => !oldPosts.some((post) => post === link));
+        const relatedPosts = newPosts.map((item) => ({
           ...item,
           id: uniqueId(),
           feedId: feed.id,
         }));
+        // eslint-disable-next-line no-param-reassign
+        state.posts = [...relatedPosts, ...state.posts];
       })
       .catch((error) => {
         console.error(error);
       });
   });
 
-  Promise.all(axiosRequests)
-    .then((currentPosts) => {
-      const newlyAddedPosts = currentPosts
-        .flat()
-        .filter((currentPost) => !oldPosts.some((oldPost) => oldPost.link === currentPost.link));
-      if (newlyAddedPosts.length > 0) {
-        // eslint-disable-next-line no-param-reassign
-        state.posts = [...newlyAddedPosts, ...oldPosts];
-      }
-    })
+  return Promise.all(axiosRequests)
     .finally(() => {
       setTimeout(() => updateRss(time, state), time);
     });
