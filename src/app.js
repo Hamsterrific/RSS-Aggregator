@@ -85,10 +85,10 @@ const updateRss = (time, state) => {
     })
       .then((response) => {
         const { items } = parseRss(response.data.contents);
-        const oldPosts = state.posts
+        const oldLinks = state.posts
           .filter(({ feedId }) => feedId === feed.id)
           .map((post) => post.link);
-        const newPosts = items.filter(({ link }) => !oldPosts.some((post) => post === link));
+        const newPosts = items.filter(({ link }) => !oldLinks.some((post) => post === link));
         const relatedPosts = newPosts.map((item) => ({
           ...item,
           id: uniqueId(),

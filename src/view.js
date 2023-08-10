@@ -16,7 +16,7 @@ export default (elements, i18n, initialState) => {
     feedback.textContent = i18next.t(state.form.error);
   };
 
-  const renderCard = (type) => {
+  const createCard = (type) => {
     const card = document.createElement('div');
     card.classList.add('card', 'border-0');
     const cardBody = document.createElement('div');
@@ -31,7 +31,7 @@ export default (elements, i18n, initialState) => {
   const renderFeeds = (state) => {
     const parent = elements.feeds;
     parent.innerHTML = '';
-    const utils = renderCard('feeds');
+    const card = createCard('feeds');
     const listGroup = document.createElement('ul');
     listGroup.classList.add('list-group', 'border-0', 'rounded-0');
     state.feeds.forEach((item) => {
@@ -50,14 +50,14 @@ export default (elements, i18n, initialState) => {
       feed.appendChild(title);
       feed.appendChild(description);
     });
-    parent.append(utils);
-    utils.append(listGroup);
+    parent.append(card);
+    card.append(listGroup);
   };
 
   const renderPosts = (state) => {
     const parent = elements.posts;
     parent.innerHTML = '';
-    const utils = renderCard('posts');
+    const card = createCard('posts');
     const listGroup = document.createElement('ul');
     listGroup.classList.add('list-group', 'border-0', 'rounded-0');
     state.posts.forEach((post) => {
@@ -94,8 +94,8 @@ export default (elements, i18n, initialState) => {
       listGroup.appendChild(item);
       item.append(itemLink, button);
     });
-    parent.append(utils);
-    utils.append(listGroup);
+    parent.append(card);
+    card.append(listGroup);
   };
 
   const renderModal = (state) => {
