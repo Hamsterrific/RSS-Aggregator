@@ -7,7 +7,7 @@ import watch from './view.js';
 import resources from './locales/index.js';
 import parseRss from './rss.js';
 
-const defaultLang = 'ru';
+const defaultLang = 'en';
 const updateInterval = 5000;
 const axiosTimeout = 10000;
 
@@ -88,7 +88,9 @@ const updateRss = (time, state) => {
         const oldLinks = state.posts
           .filter(({ feedId }) => feedId === feed.id)
           .map((post) => post.link);
-        const newPosts = items.filter(({ link }) => !oldLinks.some((post) => post === link));
+        const newPosts = items.filter(
+          ({ link }) => !oldLinks.some((post) => post === link)
+        );
         const relatedPosts = newPosts.map((item) => ({
           ...item,
           id: uniqueId(),
@@ -102,10 +104,9 @@ const updateRss = (time, state) => {
       });
   });
 
-  return Promise.all(axiosRequests)
-    .finally(() => {
-      setTimeout(() => updateRss(time, state), time);
-    });
+  return Promise.all(axiosRequests).finally(() => {
+    setTimeout(() => updateRss(time, state), time);
+  });
 };
 
 export default () => {
