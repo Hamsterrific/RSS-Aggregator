@@ -89,7 +89,7 @@ const updateRss = (time, state) => {
           .filter(({ feedId }) => feedId === feed.id)
           .map((post) => post.link);
         const newPosts = items.filter(
-          ({ link }) => !oldLinks.some((post) => post === link)
+          ({ link }) => !oldLinks.some((post) => post === link),
         );
         const relatedPosts = newPosts.map((item) => ({
           ...item,
